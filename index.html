@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Owed — Debt Tracker</title>
+<style>
+:root{
+  --bg:#ECEFF3; --card:#fff; --ink:#1B2433; --mute:#667085; --line:#D9DEE6;
+  --in:#1F7A5C; --in-bg:#E3F2EC; --out:#B8433A; --out-bg:#F8E7E4; --accent:#1B2433;
+  box-sizing:border-box;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#0F141C; --card:#18202C; --ink:#E9EDF3; --mute:#9AA5B5; --line:#2A3544;
+    --in:#4FC39B; --in-bg:#12302A; --out:#F08A7E; --out-bg:#3A1F1C; --accent:#E9EDF3; }
+}
+*{box-sizing:inherit}
+html,body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.wrap{max-width:480px;margin:0 auto;padding:22px 16px 60px}
+h1{font-family:Georgia,"Times New Roman",serif;font-size:26px;margin:0 0 16px;font-weight:700}
+.sum{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.box{border-radius:12px;padding:14px}
+.box small{display:block;font-size:12.5px;margin-bottom:4px;opacity:.85}
+.box b{font-family:Georgia,serif;font-size:24px;font-variant-numeric:tabular-nums}
+.box.in{background:var(--in-bg);color:var(--in)} .box.out{background:var(--out-bg);color:var(--out)}
+.net{text-align:center;color:var(--mute);font-size:13.5px;margin-bottom:18px}
+.net b{color:var(--ink)}
+.panel{background:var(--card);border-radius:12px;padding:16px;margin-bottom:18px;border:1px solid var(--line)}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px}
+.seg button{padding:11px;border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:8px;font-size:14px;font-family:inherit}
+.seg button.on[data-dir="in"]{background:var(--in);color:#fff;border-color:var(--in)}
+.seg button.on[data-dir="out"]{background:var(--out);color:#fff;border-color:var(--out)}
+label{display:block;font-size:12.5px;color:var(--mute);margin:10px 0 5px}
+input{width:100%;padding:12px;font-size:16px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font-family:inherit}
+.add{width:100%;margin-top:14px;padding:13px;border:0;border-radius:8px;background:var(--accent);color:var(--bg);font-size:16px;font-weight:600;font-family:inherit}
+.tabs{display:flex;gap:8px;margin-bottom:12px}
+.tabs button{flex:1;padding:9px;border-radius:20px;border:1px solid var(--line);background:transparent;color:var(--mute);font-size:13.5px;font-family:inherit}
+.tabs button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+h2{font-size:14px;color:var(--mute);margin:20px 0 8px;font-weight:600}
+.debt{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--in);border-radius:10px;padding:13px;margin-bottom:10px}
+.debt.out{border-left-color:var(--out)}
+.debt.done{opacity:.55}
+.top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.who{font-weight:600;font-size:16px}
+.note{font-size:13px;color:var(--mute);margin-top:2px;word-break:break-word}
+.left{font-family:Georgia,serif;font-size:19px;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.debt .left{color:var(--in)} .debt.out .left{color:var(--out)}
+.of{font-size:12px;color:var(--mute);text-align:right}
+.bar{height:6px;background:var(--line);border-radius:3px;margin:10px 0;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--in)} .debt.out .bar i{background:var(--out)}
+.meta{font-size:12.5px;color:var(--mute)} .late{color:var(--out);font-weight:600}
+.acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.acts button{flex:1;padding:9px;border-radius:8px;border:1px solid var(--line);background:transparent;color:var(--ink);font-size:13.5px;font-family:inherit}
+.acts .del{flex:0 0 auto;color:var(--out)}
+.payrow{display:flex;gap:8px;margin-top:10px}
+.payrow input{padding:10px}.payrow button{padding:0 16px;border:0;border-radius:8px;background:var(--ink);color:var(--bg);font-family:inherit;font-size:14px}
+.hist{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}
+.hist div{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;color:var(--mute);padding:4px 0}
+.hist button{border:0;background:none;color:var(--out);font-size:12.5px;font-family:inherit;padding:2px 6px}
+.empty{text-align:center;color:var(--mute);padding:26px 10px;font-size:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Owed</h1>
+  <div class="sum">
+    <div class="box in"><small>Owed to me</small><b id="sIn">$0.00</b></div>
+    <div class="box out"><small>I owe</small><b id="sOut">$0.00</b></div>
+  </div>
+  <div class="net" id="net"></div>
+
+  <div class="panel">
+    <div class="seg">
+      <button type="button" class="on" data-dir="in">They owe me</button>
+      <button type="button" data-dir="out">I owe them</button>
+    </div>
+    <label for="person">Person</label><input id="person" type="text" placeholder="Name" maxlength="40">
+    <label for="amount">Amount</label><input id="amount" type="number" inputmode="decimal" step="0.01" min="0" placeholder="0.00">
+    <label for="note">Note (optional)</label><input id="note" type="text" placeholder="What was it for?" maxlength="80">
+    <label for="due">Due date (optional)</label><input id="due" type="date">
+    <button class="add" id="addBtn" type="button">Save debt</button>
+  </div>
+
+  <div class="tabs" id="tabs">
+    <button class="on" data-f="all">All</button>
+    <button data-f="in">Owed to me</button>
+    <button data-f="out">I owe</button>
+  </div>
+  <div id="list"></div>
+  <div id="doneWrap"></div>
+</div>
+
+<script>
+(function(){
+  const KEY='owed.debts.v1', CUR='$';
+  const $=id=>document.getElementById(id);
+  let debts=load(), dir='in', filter='all', payingId=null, mode='pay', delId=null, noteId=null;
+
+  function load(){try{const p=JSON.parse(localStorage.getItem(KEY));return Array.isArray(p)?p.map(d=>{if(!d.more)d.more=[];if(!d.payments)d.payments=d.paid>0?[{id:1,amt:d.paid,date:d.created}]:[];return d}):[]}catch(e){return[]}}
+  const total=d=>Math.round(d.payments.reduce((s,p)=>s+p.amt,0)*100)/100;
+  function save(){try{localStorage.setItem(KEY,JSON.stringify(debts))}catch(e){}}
+  const money=v=>(v<0?'-':'')+CUR+Math.abs(v).toFixed(2);
+  const owedTotal=d=>Math.round((d.amount+(d.more||[]).reduce((s,m)=>s+m.amt,0))*100)/100;
+  const left=d=>Math.max(0,Math.round((owedTotal(d)-total(d))*100)/100);
+  const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  document.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>{
+    dir=b.dataset.dir;
+    document.querySelectorAll('.seg button').forEach(x=>x.classList.toggle('on',x===b));
+  });
+  $('tabs').onclick=e=>{
+    const f=e.target.dataset.f; if(!f) return; filter=f;
+    document.querySelectorAll('#tabs button').forEach(x=>x.classList.toggle('on',x===e.target));
+    render();
+  };
+
+  $('addBtn').onclick=()=>{
+    const person=$('person').value.trim(), amount=Math.round(parseFloat($('amount').value)*100)/100;
+    if(!person){$('person').focus();return}
+    if(!amount||amount<=0){$('amount').focus();return}
+    debts.push({id:Date.now()+Math.floor(Math.random()*1000),dir,person,amount,paid:0,payments:[],more:[],
+      note:$('note').value.trim(),due:$('due').value,created:Date.now()});
+    save();
+    ['person','amount','note','due'].forEach(i=>$(i).value='');
+    render();
+    if(window.LedgerAds) window.LedgerAds.afterAction();
+  };
+
+  function row(d){
+    const rem=left(d), done=rem===0, pct=Math.min(100,(owedTotal(d)-rem)/owedTotal(d)*100);
+    const late=!done&&d.due&&d.due<new Date().toISOString().slice(0,10);
+    const el=document.createElement('div');
+    el.className='debt'+(d.dir==='out'?' out':'')+(done?' done':'');
+    el.innerHTML=
+      '<div class="top"><div><div class="who">'+esc(d.person)+'</div>'+
+      (d.note?'<div class="note">'+esc(d.note)+'</div>':'')+'</div>'+
+      '<div><div class="left">'+money(rem)+'</div><div class="of">of '+money(owedTotal(d))+'</div></div></div>'+
+      '<div class="bar"><i style="width:'+pct+'%"></i></div>'+
+      '<div class="meta">'+(done?'Settled':(d.dir==='in'?'They owe you':'You owe')+
+        (d.due?' · due '+d.due:''))+(late?' <span class="late">overdue</span>':'')+'</div>';
+    const acts=document.createElement('div');acts.className='acts';
+    if(!done){
+      const p=document.createElement('button');p.textContent=payingId===d.id&&mode==='pay'?'Cancel':(d.dir==='in'?'They paid me':'I paid');
+      p.onclick=()=>{if(payingId===d.id&&mode==='pay'){payingId=null}else{payingId=d.id;mode='pay'}render()};
+      const s=document.createElement('button');s.textContent='Settle all';
+      s.onclick=()=>{if(rem>0)d.payments.push({id:Date.now(),amt:rem,date:Date.now()});payingId=null;save();render()};
+      acts.append(p,s);
+    }
+    const m=document.createElement('button');
+    m.textContent=payingId===d.id&&mode==='more'?'Cancel':(d.dir==='in'?'They took more':'I took more');
+    m.onclick=()=>{if(payingId===d.id&&mode==='more'){payingId=null}else{payingId=d.id;mode='more'}render()};
+    acts.append(m);
+    const x=document.createElement('button');x.className='del';x.textContent=delId===d.id?'Tap again to delete':'Delete';
+    x.onclick=()=>{
+      if(delId===d.id){debts=debts.filter(o=>o.id!==d.id);delId=null;save();render();return}
+      delId=d.id;render();
+      setTimeout(()=>{if(delId===d.id){delId=null;render()}},3000);
+    };
+    acts.append(x);
+    el.appendChild(acts);
+    if(noteId===d.id){const n=document.createElement('div');n.className='meta late';n.style.marginTop='8px';n.textContent='Undo a payment first. The balance would drop below what was already paid.';el.appendChild(n)}
+    const log=d.payments.map(p=>({k:'p',p})).concat((d.more||[]).map(p=>({k:'m',p}))).sort((a,b)=>b.p.date-a.p.date);
+    if(log.length){
+      const h=document.createElement('div');h.className='hist';
+      log.forEach(({k,p})=>{
+        const r=document.createElement('div');
+        const verb=k==='m'?(d.dir==='in'?'took more ':'borrowed more '):(d.dir==='in'?'received ':'paid ');
+        r.innerHTML='<span>'+new Date(p.date).toLocaleDateString()+' · '+verb+money(p.amt)+'</span>';
+        const u=document.createElement('button');u.textContent='Undo';
+        u.onclick=()=>{
+          if(k==='m'){
+            if(owedTotal(d)-p.amt<total(d)){noteId=d.id;render();setTimeout(()=>{noteId=null;render()},4000);return}
+            d.more=d.more.filter(o=>o.id!==p.id);
+          }else{d.payments=d.payments.filter(o=>o.id!==p.id);d.paid=total(d)}
+          save();render();
+        };
+        r.appendChild(u);h.appendChild(r);
+      });
+      el.appendChild(h);
+    }
+    if(payingId===d.id){
+      const r=document.createElement('div');r.className='payrow';
+      r.innerHTML='<input type="number" inputmode="decimal" step="0.01" min="0" placeholder="'+(mode==='more'?'Extra amount':'Amount paid (max '+money(rem)+')')+'"><button type="button">Save</button>';
+      r.querySelector('button').onclick=()=>{
+        const v=Math.round(parseFloat(r.querySelector('input').value)*100)/100;
+        if(!v||v<=0){r.querySelector('input').focus();return}
+        if(mode==='more'){d.more.push({id:Date.now(),amt:v,date:Date.now()})}else{d.payments.push({id:Date.now(),amt:Math.min(v,rem),date:Date.now()});d.paid=total(d)}payingId=null;save();render();
+      };
+      el.appendChild(r);
+    }
+    return el;
+  }
+
+  function render(){
+    const active=debts.filter(d=>left(d)>0);
+    const tIn=active.filter(d=>d.dir==='in').reduce((s,d)=>s+left(d),0);
+    const tOut=active.filter(d=>d.dir==='out').reduce((s,d)=>s+left(d),0);
+    $('sIn').textContent=money(tIn);$('sOut').textContent=money(tOut);
+    const n=tIn-tOut;
+    $('net').innerHTML=active.length===0?'Nothing outstanding':'Net: <b>'+(n>=0?'+':'')+money(n)+'</b>';
+
+    const match=d=>filter==='all'||d.dir===filter;
+    const list=$('list');list.innerHTML='';
+    const shown=active.filter(match).sort((a,b)=>(a.due||'9999').localeCompare(b.due||'9999')||b.created-a.created);
+    if(!shown.length) list.innerHTML='<div class="empty">'+(debts.length?'Nothing outstanding here.':'No debts yet. Add one above.')+'</div>';
+    shown.forEach(d=>list.appendChild(row(d)));
+
+    const dw=$('doneWrap');dw.innerHTML='';
+    const done=debts.filter(d=>left(d)===0&&match(d)).sort((a,b)=>b.created-a.created);
+    if(done.length){const h=document.createElement('h2');h.textContent='Settled';dw.appendChild(h);done.forEach(d=>dw.appendChild(row(d)));}
+  }
+  render();
+})();
+</script>
+</body>
+</html>
